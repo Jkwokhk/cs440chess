@@ -72,9 +72,77 @@ public class AlphaBetaAgent
                                            double alpha,
                                            double beta)
 		{
+			// Check if we are at a terminal state or at the maximum depth
 			DFSTreeNode bestChild = null;
-			return bestChild;
-		}
+			if(node.isTerminal()) {
+
+				bestChild = node;
+				
+			} 
+			else if(depth <= 0) {
+
+				// assign heuristic value to the child as its utility
+				node.setMaxPlayerUtilityValue(CustomHeuristics.getMaxPlayerHeuristicValue(node));
+				bestChild = node;
+
+			}
+			else {
+			
+		
+				// Get all the child nodes from this state 
+				List<DFSTreeNode> children = node.getChildren();
+			
+				// Check if we are maximizing (our turn) or minimizing (opponent's turn)
+				if (node.getType() == DFSTreeNodeType.MAX) {
+					double maxUtility = Double.NEGATIVE_INFINITY;  // Maximizer wants the largest value
+					for (DFSTreeNode child : children) {
+						DFSTreeNode result = alphaBetaSearch(child, depth - 1, alpha, beta);
+						double childUtility = result.getMaxPlayerUtilityValue();  // Utility from max's perspective
+			
+						// Update the best child node if this move is better
+						if (childUtility > maxUtility) {
+							maxUtility = childUtility;
+							bestChild = child;
+						}
+
+						if (maxUtility >= beta) {
+							break;
+						}
+			
+						// Update alpha
+						alpha = Math.max(alpha, maxUtility);
+					}
+
+					node.setMaxPlayerUtilityValue(bestChild.getMaxPlayerUtilityValue());
+					
+
+				} else {
+					double minUtility = Double.POSITIVE_INFINITY;  // Minimizer wants the smallest value
+					for (DFSTreeNode child : children) {
+						DFSTreeNode result = alphaBetaSearch(child, depth - 1, alpha, beta);
+						double childUtility = result.getMaxPlayerUtilityValue();  
+			
+						// Update the best child node if this move is better
+						if (childUtility < minUtility) {
+							minUtility = childUtility;
+							bestChild = child;
+						}
+
+						if (minUtility <= alpha) {
+							break;
+						}
+			
+						// Update beta
+						beta = Math.min(beta, minUtility);
+					}
+
+					node.setMaxPlayerUtilityValue(bestChild.getMaxPlayerUtilityValue());
+				}
+		
+			}
+		
+		return bestChild;
+	}
 
 		@Override
 		public Pair<Move, Long> call() throws Exception
