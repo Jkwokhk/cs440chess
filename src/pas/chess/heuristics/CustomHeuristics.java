@@ -5,6 +5,7 @@ package src.pas.chess.heuristics;
 import edu.bu.chess.search.DFSTreeNode;
 import edu.cwru.sepia.util.Direction;
 import edu.bu.chess.game.move.Move;
+import edu.bu.chess.game.move.CaptureMove;
 import edu.bu.chess.game.move.PromotePawnMove;
 import edu.bu.chess.game.piece.Piece;
 import edu.bu.chess.game.piece.PieceType;
@@ -61,11 +62,17 @@ public class CustomHeuristics
 			for (Piece piece : node.getGame().getBoard().getPieces(CustomHeuristics.getMaxPlayer(node))){
 				List<Move> captureMoves = piece.getAllCaptureMoves(node.getGame());
 				for (Move move : captureMoves){
-					Piece target 
+					CaptureMove capturemove = (CaptureMove) move;
+					Integer targetID = capturemove.getTargetPieceID();
+					// should i get min?
+					if (targetID != null){
+					Piece target = node.getGame().getBoard().getPiece(CustomHeuristics.getMinPlayer(node), targetID);
+					weighted_threat += pieceValues.getOrDefault(target.getType(), 0);
+					}
 				}
 			}
 
-
+			return weighted_threat;
 		}
 	}
 
