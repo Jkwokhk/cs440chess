@@ -122,6 +122,7 @@ public class CustomHeuristics
 		public static int getNumberOfWeightedPiecesThreateningMaxPlayer(DFSTreeNode node)
 		{
 			// how many piece are threatening me with weight
+			// king weight??? inf? because king is being threatened
 			int weighted_threat = 0;
 			Map<PieceType, Integer> pieceValues = new HashMap<>();
 			pieceValues.put(PieceType.BISHOP, 3);
@@ -129,6 +130,8 @@ public class CustomHeuristics
 			pieceValues.put(PieceType.PAWN, 1);
 			pieceValues.put(PieceType.QUEEN, 9);
 			pieceValues.put(PieceType.ROOK, 5);
+			// need kings weight because enemy is targeting king
+			pieceValues.put(PieceType.KING, 99999);
 			for(Piece piece : node.getGame().getBoard().getPieces(CustomHeuristics.getMinPlayer(node)))
 			{
 				List<Move> captureMoves = piece.getAllCaptureMoves(node.getGame());
@@ -144,6 +147,38 @@ public class CustomHeuristics
 			}
 			return weighted_threat;
 		}
+
+		public static int getClampedPieceValueTotalSurroundingMaxPlayersKing(DFSTreeNode node)
+		{
+			// what is the state of the pieces next to the king? add up the values of the neighboring pieces
+			// positive value for friendly pieces and negative value for enemy pieces (will clamp at 0)
+			int maxPlayerKingSurroundingPiecesValueTotal = 0;
+
+			Piece kingPiece = node.getGame().getBoard().getPieces(DefaultHeuristics.getMaxPlayer(node), PieceType.KING).iterator().next();
+			Coordinate kingPosition = node.getGame().getCurrentPosition(kingPiece);
+			for(Direction direction : Direction.values())
+			{
+				Coordinate neightborPosition = kingPosition.getNeighbor(direction);
+				if(node.getGame().getBoard().isInbounds(neightborPosition) && node.getGame().getBoard().isPositionOccupied(neightborPosition))
+				{
+					Piece piece = node.getGame().getBoard().getPieceAtPosition(neightborPosition);
+					int pieceValue = Piece.getPointValue(piece.getType());
+					if(piece != null && kingPiece.isEnemyPiece(piece))
+					{
+						maxPlayerKingSurroundingPiecesValueTotal -= pieceValue;
+					} else if(piece != null && !kingPiece.isEnemyPiece(piece))
+					{
+						maxPlayerKingSurroundingPiecesValueTotal += pieceValue;
+					}
+				}
+			}
+			// kingSurroundingPiecesValueTotal cannot be < 0 b/c the utility of losing a game is 0, so all of our utility values should be at least 0
+			maxPlayerKingSurroundingPiecesValueTotal = Math.max(maxPlayerKingSurroundingPiecesValueTotal, 0);
+			return maxPlayerKingSurroundingPiecesValueTotal;
+		}
+
+
+
 
 	}
 
