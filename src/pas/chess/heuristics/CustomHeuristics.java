@@ -20,7 +20,7 @@ import java.util.Map;
 
 // JAVA PROJECT IMPORTS
 import src.pas.chess.heuristics.DefaultHeuristics;
-
+// heuristics : pawn weight , pawn structure, piece moves
 
 public class CustomHeuristics
     extends Object
@@ -55,7 +55,7 @@ public class CustomHeuristics
 			pieceValues.put(PieceType.KNIGHT, 3);
 			pieceValues.put(PieceType.PAWN, 1);
 			pieceValues.put(PieceType.QUEEN, 9);
-			pieceValues.put(PieceType.ROOK, 4);
+			pieceValues.put(PieceType.ROOK, 5);
 			// what should the king's weight be?
 			// pieceValues.put(PieceType.KING, 999);
 			// Get all pieces for maximizer / attacker
@@ -88,7 +88,7 @@ public class CustomHeuristics
 			pieceValues.put(PieceType.KNIGHT, 3);
 			pieceValues.put(PieceType.PAWN, 1);
 			pieceValues.put(PieceType.QUEEN, 9);
-			pieceValues.put(PieceType.ROOK, 4);
+			pieceValues.put(PieceType.ROOK, 5);
 			for (PieceType piecetype : PieceType.values())
 			{
 				Integer num_pieces = 0;
@@ -108,7 +108,7 @@ public class CustomHeuristics
 			pieceValues.put(PieceType.KNIGHT, 3);
 			pieceValues.put(PieceType.PAWN, 1);
 			pieceValues.put(PieceType.QUEEN, 9);
-			pieceValues.put(PieceType.ROOK, 4);
+			pieceValues.put(PieceType.ROOK, 5);
 			for (PieceType piecetype : PieceType.values())
 			{
 				Integer num_pieces = 0;
@@ -119,7 +119,31 @@ public class CustomHeuristics
 			return numMaxPlayersWeightedPiecesAlive;
 		}
 
-		
+		public static int getNumberOfWeightedPiecesThreateningMaxPlayer(DFSTreeNode node)
+		{
+			// how many piece are threatening me with weight
+			int weighted_threat = 0;
+			Map<PieceType, Integer> pieceValues = new HashMap<>();
+			pieceValues.put(PieceType.BISHOP, 3);
+			pieceValues.put(PieceType.KNIGHT, 3);
+			pieceValues.put(PieceType.PAWN, 1);
+			pieceValues.put(PieceType.QUEEN, 9);
+			pieceValues.put(PieceType.ROOK, 5);
+			for(Piece piece : node.getGame().getBoard().getPieces(CustomHeuristics.getMinPlayer(node)))
+			{
+				List<Move> captureMoves = piece.getAllCaptureMoves(node.getGame());
+				for (Move move : captureMoves){
+					CaptureMove capturemove = (CaptureMove) move;
+					Integer targetID = capturemove.getTargetPieceID();
+					// should i get min?
+					if (targetID != null){
+					Piece target = node.getGame().getBoard().getPiece(CustomHeuristics.getMaxPlayer(node), targetID);
+					weighted_threat += pieceValues.getOrDefault(target.getType(), 0);
+					}
+				}
+			}
+			return weighted_threat;
+		}
 
 	}
 
