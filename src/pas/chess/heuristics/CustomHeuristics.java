@@ -77,6 +77,53 @@ public class CustomHeuristics
 	}
 
 
+	public static class DefensiveHeuristics extends Object{
+
+		// check how many piece I own with weight
+		public static int getNumberOfMaxAliveWeightedPieces(DFSTreeNode node)
+		{
+			int numMaxPlayersWeightedPiecesAlive = 0;
+			Map<PieceType, Integer> pieceValues = new HashMap<>();
+			pieceValues.put(PieceType.BISHOP, 3);
+			pieceValues.put(PieceType.KNIGHT, 3);
+			pieceValues.put(PieceType.PAWN, 1);
+			pieceValues.put(PieceType.QUEEN, 9);
+			pieceValues.put(PieceType.ROOK, 4);
+			for (PieceType piecetype : PieceType.values())
+			{
+				Integer num_pieces = 0;
+				num_pieces = node.getGame().getNumberOfAlivePieces(CustomHeuristics.getMaxPlayer(node), piecetype);
+				numMaxPlayersWeightedPiecesAlive += num_pieces * pieceValues.getOrDefault(piecetype, 0);
+			}
+			
+			return numMaxPlayersWeightedPiecesAlive;
+		}
+
+		// check how many pieces min player / enemy owns with weight
+		public static int getNumberOfMinAliveWeightedPieces(DFSTreeNode node)
+		{
+			int numMaxPlayersWeightedPiecesAlive = 0;
+			Map<PieceType, Integer> pieceValues = new HashMap<>();
+			pieceValues.put(PieceType.BISHOP, 3);
+			pieceValues.put(PieceType.KNIGHT, 3);
+			pieceValues.put(PieceType.PAWN, 1);
+			pieceValues.put(PieceType.QUEEN, 9);
+			pieceValues.put(PieceType.ROOK, 4);
+			for (PieceType piecetype : PieceType.values())
+			{
+				Integer num_pieces = 0;
+				num_pieces = node.getGame().getNumberOfAlivePieces(CustomHeuristics.getMinPlayer(node), piecetype);
+				numMaxPlayersWeightedPiecesAlive += num_pieces * pieceValues.getOrDefault(piecetype, 0);
+			}
+			
+			return numMaxPlayersWeightedPiecesAlive;
+		}
+
+		
+
+	}
+
+
 
 
 
