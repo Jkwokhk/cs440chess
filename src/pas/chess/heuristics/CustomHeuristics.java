@@ -288,9 +288,36 @@ public class CustomHeuristics
 				}
 			}
 			return score;
-			
 		}
 		// passed pawn only good for end game
+
+		// check if center has a lot of pawns
+		// question does this differentiate self or enemy?
+		public static double getCenterPawns(Set<Piece> pawns, DFSTreeNode node)
+		{
+			double score = 0.0;
+			Set<Coordinate> center = new HashSet<>();
+			// set up center squares
+			for (Integer x = 2; x<= 5; x++)
+			{
+				for (Integer y = 2; y<=5; y++)
+				{
+					center.add(new Coordinate(x,y));
+				}
+			}
+			// count how many pawns in center
+			Integer center_pawn_count = 0;
+			for (Piece pawn : pawns)
+			{
+				Coordinate pos = pawn.getCurrentPosition(node.getGame().getBoard());
+				if(center.contains(pos))
+				{
+					center_pawn_count+=1;
+				}
+			}
+			score += center_pawn_count * 0.25;
+			return score;
+		}
 
 		// call this method to get the Pawn Structure score/penalty
 		public static double evaluatePawnStructure(DFSTreeNode node)
@@ -300,6 +327,8 @@ public class CustomHeuristics
 			score += getIsolatedPawns(pawns, node);
 			score += getDoublePawns(pawns, node);
 			score += getBackwardPawns(pawns, node);
+			score += getCenterPawns(pawns, node);
+
 		}
 
 	}
