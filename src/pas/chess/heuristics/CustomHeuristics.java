@@ -242,6 +242,7 @@ public class CustomHeuristics
 					score -= (count - 1) * 0.5;
 				}
 			}
+			System.out.println("double pawns!");
 			return score;
 		}
 
@@ -249,6 +250,44 @@ public class CustomHeuristics
 		public static double getBackwardPawns(Set<Piece> pawns, DFSTreeNode node)
 		{
 			double score = 0.0;
+			Set<Coordinate> pawnCoordinates = new HashSet<>();
+			// get pawn positions
+			for (Piece pawn : pawns)
+			{
+				Coordinate pos = pawn.getCurrentPosition(node.getGame().getBoard());
+				pawnCoordinates.add(pos);
+			}
+			// check backward pawn
+			for(Coordinate position : pawnCoordinates)
+			{
+				Integer pawn_x = position.getXPosition();
+				Integer pawn_y = position.getYPosition();
+				boolean left_support = false;
+				boolean right_support = false;
+				// check if there are friendly pawns in adj cols that are ahead
+				for (Coordinate other_positions : pawnCoordinates)
+				{
+					if(other_positions.getXPosition()==pawn_x-1 && other_positions.getYPosition() > pawn_y)
+					{
+						left_support = true;
+						break;
+					}
+
+				}
+				for (Coordinate other_positions : pawnCoordinates)
+				{
+					if(other_positions.getXPosition()==pawn_x+1 && other_positions.getYPosition() > pawn_y)
+					{
+						right_support = true;
+						break;
+					}
+				}
+				if (!left_support && !right_support)
+				{
+					score -= 0.5;
+				}
+			}
+			return score;
 			
 		}
 		// passed pawn only good for end game
