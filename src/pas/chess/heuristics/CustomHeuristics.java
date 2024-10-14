@@ -334,6 +334,44 @@ public class CustomHeuristics
 
 	}
 
+	// taken from default
+	public static double getOffensiveMaxPlayerHeuristicValue(DFSTreeNode node)
+	{
+		// remember the action has already taken affect at this point, so capture moves have already resolved
+		// and the targeted piece will not exist inside the game anymore.
+		// however this value was recorded in the amount of points that the player has earned in this node
+		double damageDealtInThisNode = node.getGame().getBoard().getPointsEarned(DefaultHeuristics.getMaxPlayer(node));
+
+		switch(node.getMove().getType())
+		{
+		case PROMOTEPAWNMOVE:
+			PromotePawnMove promoteMove = (PromotePawnMove)node.getMove();
+			damageDealtInThisNode += Piece.getPointValue(promoteMove.getPromotedPieceType());
+			break;
+		default:
+			break;
+		}
+		// offense can typically include the number of pieces that our pieces are currently threatening
+		int numPiecesWeAreThreatening = OffensiveHeuristics.getWeightedThreat(node);
+
+		return damageDealtInThisNode + numPiecesWeAreThreatening;
+	}
+
+	// taken from default
+	public static double getDefensiveMaxPlayerHeuristicValue(DFSTreeNode node)
+	{
+		// how many pieces exist on our team?
+		int numPiecesAlive = DefensiveHeuristics.getNumberOfMaxAliveWeightedPieces(node);
+
+		// what is the state of the pieces next to the king? add up the values of the neighboring pieces
+		// positive value for friendly pieces and negative value for enemy pieces (will clamp at 0)
+		int kingSurroundingPiecesValueTotal = DefensiveHeuristics.getClampedPieceValueTotalSurroundingMaxPlayersKing(node);
+
+		// how many pieces are threatening us?
+		int numPiecesThreateningUs = DefensiveHeuristics.getNumberOfWeightedPiecesThreateningMaxPlayer(node);
+
+		return numPiecesAlive + kingSurroundingPiecesValueTotal + numPiecesThreateningUs;
+	}
 
 	public static double getMaxPlayerHeuristicValue(DFSTreeNode node)
 	{
