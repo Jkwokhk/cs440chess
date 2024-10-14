@@ -334,6 +334,62 @@ public class CustomHeuristics
 
 	}
 
+	public class BoardControlHeuristics {
+
+		public static double evaluateBoardControl(DFSTreeNode node) {
+			double score = 0.0;
+		
+			// Define central squares
+			Set<Coordinate> centralSquares = new HashSet<>();
+			centralSquares.add(new Coordinate(4, 5)); // d4
+			centralSquares.add(new Coordinate(4, 4)); // d5
+			centralSquares.add(new Coordinate(5, 5)); // e4
+			centralSquares.add(new Coordinate(5, 4)); // e5
+
+			/* 
+			for (int x = 2; x <= 5; x++) {
+				for (int y = 2; y <= 5; y++) {
+					centralSquares.add(new Coordinate(x, y));
+				}
+			}
+			*/
+		
+			// Evaluate control by the max player's pieces
+			for (Piece piece : node.getGame().getBoard().getPieces(CustomHeuristics.getMaxPlayer(node))) {
+				List<Coordinate> controlledSquares = piece.getControlledSquares(node.getGame());
+		
+				for (Coordinate square : controlledSquares) {
+					if (centralSquares.contains(square)) {
+						// Assign higher score for controlling central squares
+						score += 0.5;
+					} else {
+						// Lower score for controlling non-central squares
+						score += 0.1;
+					}
+				}
+			}
+		
+			// Subtract score for control by the opponent's pieces
+			for (Piece piece : node.getGame().getBoard().getPieces(CustomHeuristics.getMinPlayer(node))) {
+				List<Coordinate> controlledSquares = piece.getControlledSquares(node.getGame());
+		
+				for (Coordinate square : controlledSquares) {
+					if (centralSquares.contains(square)) {
+						// Subtract more for opponent's control of central squares
+						score -= 0.5;
+					} else {
+						// Subtract less for non-central squares
+						score -= 0.1;
+					}
+				}
+			}
+		
+			return score;
+		}
+		
+	}
+
+
 	// taken from default
 	public static double getOffensiveMaxPlayerHeuristicValue(DFSTreeNode node)
 	{
@@ -376,7 +432,7 @@ public class CustomHeuristics
 	public static double getMaxPlayerHeuristicValue(DFSTreeNode node)
 	{
 		// please replace this!
-		double defensiveHeuristicValue = DefaultHeuristics.getMaxPlayerHeuristicValue(node);
+		double defensiveHeuristicValue = CustomHuerstics.getDefensiveMaxPlayerHeuristicValue(node);
 		double pawnHeuristicValue = PawnStructureHeuristics.evaluatePawnStructure(node);
 		return defensiveHeuristicValue + pawnHeuristicValue;
 		
