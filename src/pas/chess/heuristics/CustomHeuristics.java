@@ -328,6 +328,7 @@ public class CustomHeuristics
 			score += getDoublePawns(pawns, node);
 			score += getBackwardPawns(pawns, node);
 			score += getCenterPawns(pawns, node);
+			return score;
 
 		}
 
