@@ -338,7 +338,10 @@ public class CustomHeuristics
 	public static double getMaxPlayerHeuristicValue(DFSTreeNode node)
 	{
 		// please replace this!
-		return DefaultHeuristics.getMaxPlayerHeuristicValue(node);
+		double defensiveHeuristicValue = DefaultHeuristics.getMaxPlayerHeuristicValue(node);
+		double pawnHeuristicValue = PawnStructureHeuristics.evaluatePawnStructure(node);
+		return defensiveHeuristicValue + pawnHeuristicValue;
+		
 	}
 
 }
