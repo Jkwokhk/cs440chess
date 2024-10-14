@@ -6,6 +6,7 @@ import edu.bu.chess.search.DFSTreeNode;
 import edu.cwru.sepia.util.Direction;
 import edu.bu.chess.game.move.Move;
 import edu.bu.chess.game.move.CaptureMove;
+import edu.bu.chess.game.move.MovementMove;
 import edu.bu.chess.game.move.PromotePawnMove;
 import edu.bu.chess.game.piece.Piece;
 import edu.bu.chess.game.piece.PieceType;
@@ -282,6 +283,35 @@ public class CustomHeuristics
 						break;
 					}
 				}
+
+				// vvvvvvvvv   -----doesn't backwards pawn also mean that the pawn cannot safely advance?------ vvvvvvvvv
+
+				boolean canAdvanceSafely = true;
+
+				Coordinate forwardPosition = new Coordinate(pawn_x, pawn_y + 1); 
+				// Check if enemy pieces are threatening the square in front
+				for (Piece piece : node.getGame().getBoard().getPieces(CustomHeuristics.getMinPlayer(node))) {
+					List<Move> movementMoves = piece.getAllMoves(node.getGame());
+					for (Move move : movementMoves) {
+						MovementMove movementmove = (MovementMove) move;
+						Coordinate targetSquare = movementmove.getTargetPosition();
+
+						// if there is an enemy attacking the square in front of the pawn
+						if ( targetSquare.equals(forwardPosition) ) {
+							break;
+						}
+					}
+				}
+
+				// ^^^^^^^^^  -----doesn't backwards pawn also mean that the pawn cannot safely advance?------ ^^^^^^^^^^^^^
+				
+				/* 
+				if (!left_support && !right_support && !canAdvanceSafely) {
+					score -= 0.5;
+				}
+				*/
+
+
 				if (!left_support && !right_support)
 				{
 					score -= 0.5;
@@ -333,18 +363,19 @@ public class CustomHeuristics
 		}
 
 	}
-
-	public class BoardControlHeuristics {
+	public static class BoardControlHeuristics {
 
 		public static double evaluateBoardControl(DFSTreeNode node) {
 			double score = 0.0;
-		
+	
 			// Define central squares
 			Set<Coordinate> centralSquares = new HashSet<>();
 			centralSquares.add(new Coordinate(4, 5)); // d4
 			centralSquares.add(new Coordinate(4, 4)); // d5
 			centralSquares.add(new Coordinate(5, 5)); // e4
 			centralSquares.add(new Coordinate(5, 4)); // e5
+
+			// shouldn't the range of the central squares be x from 3 to 6 and y from 3 to 6? Like in sepia?
 
 			/* 
 			for (int x = 2; x <= 5; x++) {
@@ -353,13 +384,16 @@ public class CustomHeuristics
 				}
 			}
 			*/
-		
+	
 			// Evaluate control by the max player's pieces
 			for (Piece piece : node.getGame().getBoard().getPieces(CustomHeuristics.getMaxPlayer(node))) {
-				List<Coordinate> controlledSquares = piece.getControlledSquares(node.getGame());
-		
-				for (Coordinate square : controlledSquares) {
-					if (centralSquares.contains(square)) {
+				List<Move> controlledMoves = piece.getAllMoves(node.getGame());
+	
+				for (Move move : controlledMoves) {
+					MovementMove destination = (MovementMove) move; 
+					Coordinate targetSquare = destination.getTargetPosition(); // Get the target square of the move
+
+					if (centralSquares.contains(targetSquare)) {
 						// Assign higher score for controlling central squares
 						score += 0.5;
 					} else {
@@ -368,13 +402,16 @@ public class CustomHeuristics
 					}
 				}
 			}
-		
+	
 			// Subtract score for control by the opponent's pieces
 			for (Piece piece : node.getGame().getBoard().getPieces(CustomHeuristics.getMinPlayer(node))) {
-				List<Coordinate> controlledSquares = piece.getControlledSquares(node.getGame());
-		
-				for (Coordinate square : controlledSquares) {
-					if (centralSquares.contains(square)) {
+				List<Move> controlledMoves = piece.getAllMoves(node.getGame());
+	
+				for (Move move : controlledMoves) {
+					MovementMove destination = (MovementMove) move; 
+					Coordinate targetSquare = destination.getTargetPosition(); 
+
+					if (centralSquares.contains(targetSquare)) {
 						// Subtract more for opponent's control of central squares
 						score -= 0.5;
 					} else {
@@ -383,10 +420,9 @@ public class CustomHeuristics
 					}
 				}
 			}
-		
+	
 			return score;
 		}
-		
 	}
 
 
@@ -432,7 +468,7 @@ public class CustomHeuristics
 	public static double getMaxPlayerHeuristicValue(DFSTreeNode node)
 	{
 		// please replace this!
-		double defensiveHeuristicValue = CustomHuerstics.getDefensiveMaxPlayerHeuristicValue(node);
+		double defensiveHeuristicValue = DefaultHeuristics.getDefensiveMaxPlayerHeuristicValue(node);
 		double pawnHeuristicValue = PawnStructureHeuristics.evaluatePawnStructure(node);
 		return defensiveHeuristicValue + pawnHeuristicValue;
 		
