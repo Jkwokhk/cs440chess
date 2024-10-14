@@ -178,14 +178,7 @@ public class CustomHeuristics
 			maxPlayerKingSurroundingPiecesValueTotal = Math.max(maxPlayerKingSurroundingPiecesValueTotal, 0);
 			return maxPlayerKingSurroundingPiecesValueTotal;
 		}
-
-
-
-
-
 	}
-
-
 	// evaluating pawn structure, should i implement for both enemy and player?
 
 	public static class PawnStructureHeuristics extends Object{
@@ -198,7 +191,6 @@ public class CustomHeuristics
 			for(Piece pawn : pawns)
 			{
 				Coordinate pos = pawn.getCurrentPosition(node.getGame().getBoard());
-				
 				pawnCoordinates.add(pos);
 			}
 			for (Coordinate position : pawnCoordinates)
@@ -224,22 +216,49 @@ public class CustomHeuristics
 				if(!isAdjacent && !isProtected)
 				{
 					score -= 0.5;
+					System.out.println("Isolated pawn!");
 				}
 
 			}
+			
 			return score;
 		}
+
+		public static double getDoublePawns(Set<Piece> pawns, DFSTreeNode node)
+		{
+			double score = 0.0;
+
+			Map<Integer, Integer> pawnCount = new HashMap<>();
+			for(Piece pawn : pawns)
+			{
+				Coordinate pos = pawn.getCurrentPosition(node.getGame().getBoard());
+				// counter for number of pawns in each column
+				pawnCount.put(pos.getXPosition(), pawnCount.getOrDefault(pos.getXPosition(), 0)+1);
+			}
+			for (Integer count : pawnCount.values())
+			{
+				if (count > 1)
+				{
+					score -= (count - 1) * 0.5;
+				}
+			}
+			return score;
+		}
+
+		// backward pawn?
+		
+		// passed pawn only good for end game
+
+		// call this method to get the Pawn Structure score/penalty
 		public static double evaluatePawnStructure(DFSTreeNode node)
 		{
 			double score = 0.0;
 			Set<Piece> pawns = node.getGame().getBoard().getPieces(CustomHeuristics.getMaxPlayer(node), PieceType.PAWN);
-			score += getIsolatedPawns(pawns);
+			score += getIsolatedPawns(pawns, node);
+			score += getDoublePawns(pawns, node);
 		}
 
 	}
-
-
-
 
 
 	public static double getMaxPlayerHeuristicValue(DFSTreeNode node)
