@@ -15,8 +15,10 @@ import edu.bu.chess.search.DFSTreeNode;
 
 import edu.bu.chess.utils.Coordinate;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 // JAVA PROJECT IMPORTS
 import src.pas.chess.heuristics.DefaultHeuristics;
@@ -180,8 +182,61 @@ public class CustomHeuristics
 
 
 
+
 	}
 
+
+	// evaluating pawn structure, should i implement for both enemy and player?
+
+	public static class PawnStructureHeuristics extends Object{
+
+		public static double getIsolatedPawns(Set<Piece> pawns, DFSTreeNode node)
+		{
+			double score = 0.0;
+			Set<Coordinate> pawnCoordinates = new HashSet<>();
+			
+			for(Piece pawn : pawns)
+			{
+				Coordinate pos = pawn.getCurrentPosition(node.getGame().getBoard());
+				
+				pawnCoordinates.add(pos);
+			}
+			for (Coordinate position : pawnCoordinates)
+			{
+				boolean isAdjacent = false;
+				boolean isProtected = false;
+				Integer pawn_x = position.getXPosition();
+				Integer pawn_y = position.getYPosition();
+				// Check if there are pawns in adjacent columns
+				Coordinate left_pawn = new Coordinate (pawn_x-1, pawn_y);
+				Coordinate right_pawn = new Coordinate (pawn_x+1, pawn_y);
+				if(pawnCoordinates.contains(left_pawn)||pawnCoordinates.contains(right_pawn))
+				{
+					isAdjacent = true;
+				}
+				// Check if the pawn is being protected
+				Coordinate left_protecting_pawn = new Coordinate(pawn_x-1, pawn_y-1);
+				Coordinate right_protecting_pawn = new Coordinate(pawn_x+1, pawn_y-1);
+				if(pawnCoordinates.contains(left_protecting_pawn)||pawnCoordinates.contains(right_protecting_pawn))
+				{
+					isProtected = true;
+				}
+				if(!isAdjacent && !isProtected)
+				{
+					score -= 0.5;
+				}
+
+			}
+			return score;
+		}
+		public static double evaluatePawnStructure(DFSTreeNode node)
+		{
+			double score = 0.0;
+			Set<Piece> pawns = node.getGame().getBoard().getPieces(CustomHeuristics.getMaxPlayer(node), PieceType.PAWN);
+			score += getIsolatedPawns(pawns);
+		}
+
+	}
 
 
 
