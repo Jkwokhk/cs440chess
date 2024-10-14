@@ -246,7 +246,11 @@ public class CustomHeuristics
 		}
 
 		// backward pawn?
-		
+		public static double getBackwardPawns(Set<Piece> pawns, DFSTreeNode node)
+		{
+			double score = 0.0;
+			
+		}
 		// passed pawn only good for end game
 
 		// call this method to get the Pawn Structure score/penalty
@@ -256,6 +260,7 @@ public class CustomHeuristics
 			Set<Piece> pawns = node.getGame().getBoard().getPieces(CustomHeuristics.getMaxPlayer(node), PieceType.PAWN);
 			score += getIsolatedPawns(pawns, node);
 			score += getDoublePawns(pawns, node);
+			score += getBackwardPawns(pawns, node);
 		}
 
 	}
