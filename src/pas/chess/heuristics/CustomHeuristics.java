@@ -286,22 +286,22 @@ public class CustomHeuristics
 
 				// vvvvvvvvv   -----doesn't backwards pawn also mean that the pawn cannot safely advance?------ vvvvvvvvv
 
-				boolean canAdvanceSafely = true;
+				// boolean canAdvanceSafely = true;
 
-				Coordinate forwardPosition = new Coordinate(pawn_x, pawn_y + 1); 
-				// Check if enemy pieces are threatening the square in front
-				for (Piece piece : node.getGame().getBoard().getPieces(CustomHeuristics.getMinPlayer(node))) {
-					List<Move> movementMoves = piece.getAllMoves(node.getGame());
-					for (Move move : movementMoves) {
-						MovementMove movementmove = (MovementMove) move;
-						Coordinate targetSquare = movementmove.getTargetPosition();
+				// Coordinate forwardPosition = new Coordinate(pawn_x, pawn_y + 1); 
+				// // Check if enemy pieces are threatening the square in front
+				// for (Piece piece : node.getGame().getBoard().getPieces(CustomHeuristics.getMinPlayer(node))) {
+				// 	List<Move> movementMoves = piece.getAllMoves(node.getGame());
+				// 	for (Move move : movementMoves) {
+				// 		MovementMove movementmove = (MovementMove) move;
+				// 		Coordinate targetSquare = movementmove.getTargetPosition();
 
-						// if there is an enemy attacking the square in front of the pawn
-						if ( targetSquare.equals(forwardPosition) ) {
-							break;
-						}
-					}
-				}
+				// 		// if there is an enemy attacking the square in front of the pawn
+				// 		if ( targetSquare.equals(forwardPosition) ) {
+				// 			break;
+				// 		}
+				// 	}
+				// }
 
 				// ^^^^^^^^^  -----doesn't backwards pawn also mean that the pawn cannot safely advance?------ ^^^^^^^^^^^^^
 				
