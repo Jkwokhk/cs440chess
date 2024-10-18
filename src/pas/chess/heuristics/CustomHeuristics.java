@@ -365,7 +365,89 @@ public class CustomHeuristics
 	}
 	public static class BoardControlHeuristics {
 
-		public static double evaluateBoardControl(DFSTreeNode node) {
+		public static final double[][] KNIGHT_POS = {
+			{-5,  -4,  -3,   -3,     -3,   -3,   -4,   -5},
+			{-4,  -2,   0,    0,     0,     0,   -2,   -4},
+			{-3,   0,   1,    1.5,   1.5,   1,    0,   -3},
+			{-3,   0.5, 1.5,  2,     2,     1.5,  0.5, -3},
+			{-3,   0,   1.5,  2,     2,     1.5,  0,   -3},
+			{-3,   0.5, 1,    1.5,   1.5,   1,    0.5, -3},
+			{-4,  -2,   0,    0.5,   0.5,   0,   -2,   -4},
+			{-5,  -4,  -3,    -3,   -3,    -3,   -4,   -5}
+		};
+		
+		public static final double[][] QUEEN_POS = {
+			{-5,  -4,  -3,   -3,     -3,   -3,   -4,   -5},
+			{-4,  -2,   0,    0,     0,     0,   -2,   -4},
+			{-3,   0,   1,    2,     2,     1,    0,   -3},
+			{-3,   0.5, 2,    4,     4,     2,    0.5, -3},
+			{-3,   0,   2,    4,     4,     2,    0,   -3},
+			{-3,   0.5, 1,    2,     2,     1,    0.5, -3},
+			{-4,  -2,   0,    0.5,   0.5,   0,   -2,   -4},
+			{-5,  -4,  -3,    -3,   -3,    -3,   -4,   -5}
+		};
+		
+		// check if the position of your pieces are near the center/advantageous
+		public static double getCenterControl(DFSTreeNode node) {
+			double score = 0.0;
+		
+			for (Piece piece : node.getGame().getBoard().getPieces(CustomHeuristics.getMaxPlayer(node))) {
+				Coordinate pos = piece.getCurrentPosition(node.getGame().getBoard());
+				int x = pos.getXPosition();
+				int y = pos.getYPosition();
+				switch (piece.getType()) {
+					case KNIGHT:
+						score += KNIGHT_POS[y-1][x-1];
+						break;
+					case QUEEN:
+						score += QUEEN_POS[y-1] [x-1];
+						break;
+					// Add cases for other piece types?
+				}
+			}
+		
+			// Subtract opponent's piece-square values
+			for (Piece piece : node.getGame().getBoard().getPieces(CustomHeuristics.getMinPlayer(node))) {
+				Coordinate pos = piece.getCurrentPosition(node.getGame().getBoard());
+				int x = pos.getXPosition();
+				int y = pos.getYPosition();
+				switch (piece.getType()) {
+					case KNIGHT:
+						score -= KNIGHT_POS[y-1][x-1]; 
+						break;
+					case QUEEN:
+						score -= QUEEN_POS [y-1] [x-1];
+						break;
+					// Add cases for other piece types?
+				}
+			}
+		
+			return score;
+		}
+
+		public static double getMobility(DFSTreeNode node) {
+			double score = 0.0;
+		
+			int maxPlayerMobility = 0;
+			int minPlayerMobility = 0;
+		
+			for (Piece piece : node.getGame().getBoard().getPieces(CustomHeuristics.getMaxPlayer(node))) {
+				maxPlayerMobility += piece.getAllMoves(node.getGame()).size();
+			}
+		
+			for (Piece piece : node.getGame().getBoard().getPieces(CustomHeuristics.getMinPlayer(node))) {
+				minPlayerMobility += piece.getAllMoves(node.getGame()).size();
+			}
+		
+			score += 0.1 * (maxPlayerMobility - minPlayerMobility);
+		
+			return score;
+		}
+		
+				
+		/* 
+
+		public static double getCenterControl2(DFSTreeNode node) {
 			double score = 0.0;
 	
 			// Define central squares
@@ -375,16 +457,6 @@ public class CustomHeuristics
 			centralSquares.add(new Coordinate(5, 5)); // e4
 			centralSquares.add(new Coordinate(5, 4)); // e5
 
-			// shouldn't the range of the central squares be x from 3 to 6 and y from 3 to 6? Like in sepia?
-
-			/* 
-			for (int x = 2; x <= 5; x++) {
-				for (int y = 2; y <= 5; y++) {
-					centralSquares.add(new Coordinate(x, y));
-				}
-			}
-			*/
-	
 			// Evaluate control by the max player's pieces
 			for (Piece piece : node.getGame().getBoard().getPieces(CustomHeuristics.getMaxPlayer(node))) {
 				List<Move> controlledMoves = piece.getAllMoves(node.getGame());
@@ -394,12 +466,8 @@ public class CustomHeuristics
 					Coordinate targetSquare = destination.getTargetPosition(); // Get the target square of the move
 
 					if (centralSquares.contains(targetSquare)) {
-						// Assign higher score for controlling central squares
 						score += 0.5;
-					} else {
-						// Lower score for controlling non-central squares
-						score += 0.1;
-					}
+					} 
 				}
 			}
 	
@@ -412,17 +480,27 @@ public class CustomHeuristics
 					Coordinate targetSquare = destination.getTargetPosition(); 
 
 					if (centralSquares.contains(targetSquare)) {
-						// Subtract more for opponent's control of central squares
 						score -= 0.5;
-					} else {
-						// Subtract less for non-central squares
-						score -= 0.1;
-					}
+					} 
 				}
 			}
 	
 			return score;
 		}
+
+		*/
+
+		public static double evaluateBoardControl(DFSTreeNode node)
+		{
+			double score = 0.0;
+			score += getCenterControl(node);
+		//  score += getCenterControl2(node);
+			score += getMobility(node);
+			return score;
+
+		}
+
+
 	}
 
 
@@ -470,7 +548,8 @@ public class CustomHeuristics
 		// please replace this!
 		double defensiveHeuristicValue = DefaultHeuristics.getDefensiveMaxPlayerHeuristicValue(node);
 		double pawnHeuristicValue = PawnStructureHeuristics.evaluatePawnStructure(node);
-		return defensiveHeuristicValue + pawnHeuristicValue;
+		double boardcontrolHeuristicValue = BoardControlHeuristics.evaluateBoardControl(node);
+		return defensiveHeuristicValue + pawnHeuristicValue + boardcontrolHeuristicValue;
 		
 	}
 
