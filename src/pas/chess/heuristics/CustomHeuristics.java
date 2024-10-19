@@ -395,13 +395,17 @@ public class CustomHeuristics
 		// call this method to get the Pawn Structure score/penalty
 		public static double evaluatePawnStructure(DFSTreeNode node)
 		{
+			double phase = getGamePhase(node);
+
 			double score = 0.0;
 			Set<Piece> pawns = node.getGame().getBoard().getPieces(CustomHeuristics.getMaxPlayer(node), PieceType.PAWN);
 			score += getIsolatedPawns(pawns, node);
 			score += getDoublePawns(pawns, node);
 			score += getBackwardPawns(pawns, node);
 			score += getCenterPawns(pawns, node);
-			return score;
+			score += getPassedPawns(node);
+
+			return score * (1 - phase);
 
 		}
 
@@ -526,9 +530,11 @@ public class CustomHeuristics
 
 		public static double evaluateBoardControl(DFSTreeNode node)
 		{
+			double phase = getGamePhase(node);
 			double score = 0.0;
+
 			score += evaluateCenterControl(node);
-			score += evaluateMobility(node);
+			score += evaluateMobility(node) * phase;
 			score += evaluateRookPosition(node);
 			return score;
 
