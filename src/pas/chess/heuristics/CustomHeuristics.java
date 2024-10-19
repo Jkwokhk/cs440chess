@@ -405,7 +405,7 @@ public class CustomHeuristics
 			score += getCenterPawns(pawns, node);
 			score += getPassedPawns(node);
 
-			return score * (1 - phase);
+			return score * (1 - phase);  // score will be higher at engame
 
 		}
 
@@ -413,15 +413,16 @@ public class CustomHeuristics
 	public static class BoardControlHeuristics {
 
 		public static final double[][] KNIGHT_POS = {
-			{-5,  -4,  -3,   -3,     -3,   -3,   -4,   -5},
-			{-4,  -2,   0,    0,     0,     0,   -2,   -4},
-			{-3,   0,   1,    1.5,   1.5,   1,    0,   -3},
-			{-3,   0.5, 1.5,  2,     2,     1.5,  0.5, -3},
-			{-3,   0,   1.5,  2,     2,     1.5,  0,   -3},
-			{-3,   0.5, 1,    1.5,   1.5,   1,    0.5, -3},
-			{-4,  -2,   0,    0.5,   0.5,   0,   -2,   -4},
-			{-5,  -4,  -3,    -3,   -3,    -3,   -4,   -5}
+			{-5,  -4,  -3,  -3,  -3,  -3,  -4,  -5},
+			{-4,  -2,   0,   0,   0,   0,  -2,  -4},
+			{-3,   0,   1,   1.5, 1.5,  1,   0,  -3},
+			{-3,   0.5, 2,   2.5, 2.5,  2,  0.5, -3},
+			{-3,   0.5, 2,   2.5, 2.5,  2,  0.5, -3},
+			{-3,   0,   1,   1.5, 1.5,  1,   0,  -3},
+			{-4,  -2,   0,   0.5, 0.5,  0,  -2,  -4},
+			{-5,  -4,  -3,  -3,  -3,  -3,  -4,  -5}
 		};
+		
 		
 		public static final double[][] QUEEN_POS = {
 			{-5,  -4,  -3,   -3,     -3,   -3,   -4,   -5},
@@ -447,7 +448,7 @@ public class CustomHeuristics
 						score += KNIGHT_POS[y-1][x-1];
 						break;
 					case QUEEN:
-						score += QUEEN_POS[y-1] [x-1];
+						score += QUEEN_POS[y-1][x-1];
 						break;
 					// Add cases for other piece types?
 				}
@@ -518,14 +519,55 @@ public class CustomHeuristics
 				}
 		
 				if (openFile) {
-					score += 0.5;
+					score += 1;
 				} else if (semiOpenFile) {
-					score += 0.25;
+					score += 0.5;
 				}
 			}
 		
 			return score;
 		}
+
+		// check for knight outposts spots (strong in middlegame)
+		public static boolean isKnightOutpost(Piece knight, DFSTreeNode node) {
+			Coordinate pos = knight.getCurrentPosition(node.getGame().getBoard());
+			int x = pos.getXPosition();
+			int y = pos.getYPosition();
+		
+			// Check if no opponent's pawns can attack this square
+			for (int row = -1; row <= 1; row += 2) {
+
+				int adjPos = x + row;
+				if ( !(1 <= adjPos && adjPos <= 8)) {
+					continue;
+				}
+
+				Coordinate pawnPos = new Coordinate(adjPos, y - 1);
+
+	
+				Piece potentialPawn = node.getGame().getBoard().getPieceAtPosition(pawnPos);
+				if (potentialPawn != null && potentialPawn.getType() == PieceType.PAWN &&
+					potentialPawn.getPlayer().equals(CustomHeuristics.getMinPlayer(node))) {
+					return false;
+				}
+				
+			}
+		
+			return true;
+		}
+		
+		public static double evaluateKnightOutposts(DFSTreeNode node) {
+			double score = 0.0;
+		
+			for (Piece knight : node.getGame().getBoard().getPieces(CustomHeuristics.getMaxPlayer(node), PieceType.KNIGHT)) {
+				if (isKnightOutpost(knight, node)) {
+					score += 1;  // Bonus for knight outposts
+				}
+			}
+		
+			return score;
+		}
+		
 		
 
 		public static double evaluateBoardControl(DFSTreeNode node)
@@ -533,9 +575,10 @@ public class CustomHeuristics
 			double phase = getGamePhase(node);
 			double score = 0.0;
 
-			score += evaluateCenterControl(node);
+			score += evaluateCenterControl(node) * phase;
 			score += evaluateMobility(node) * phase;
 			score += evaluateRookPosition(node);
+			score += evaluateKnightOutposts(node) * phase;
 			return score;
 
 		}
