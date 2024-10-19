@@ -319,7 +319,6 @@ public class CustomHeuristics
 			}
 			return score;
 		}
-		// passed pawn only good for end game
 
 		// check if center has a lot of pawns
 		// question does this differentiate self or enemy?
@@ -348,6 +347,50 @@ public class CustomHeuristics
 			score += center_pawn_count * 0.25;
 			return score;
 		}
+
+		// checks for passed pawns
+		public static double getPassedPawns(DFSTreeNode node) {
+			double score = 0.0;
+		
+			for (Piece pawn : node.getGame().getBoard().getPieces(CustomHeuristics.getMaxPlayer(node), PieceType.PAWN)) {
+				if (isPassedPawn(pawn, node)) {
+					score += 1;
+				}
+			}
+		
+			return score;
+		}
+		
+		// helper func for getPassedPawns
+		private static boolean isPassedPawn(Piece pawn, DFSTreeNode node) {
+			Coordinate pos = pawn.getCurrentPosition(node.getGame().getBoard());
+			int x = pos.getXPosition();
+			int y = pos.getYPosition();
+
+			
+			for (int row = -1; row <= 1; row++) {
+
+				int adjPos = x + row;
+				if ( !(1 <= adjPos && adjPos <= 8) ) {
+					continue;
+				}
+
+				for (int col = y; col <= 1; col++) {
+
+					Coordinate checkPos = new Coordinate(adjPos, col);
+					Piece blockingPawn = node.getGame().getBoard().getPieceAtPosition(checkPos);
+               		if (blockingPawn != null && blockingPawn.getType() == PieceType.PAWN &&
+                    	blockingPawn.getPlayer().equals(CustomHeuristics.getMinPlayer(node))) {
+                    	return false;
+					}
+					
+				}
+			}
+			return true;
+			
+		}
+		
+		
 
 		// call this method to get the Pawn Structure score/penalty
 		public static double evaluatePawnStructure(DFSTreeNode node)
@@ -388,7 +431,7 @@ public class CustomHeuristics
 		};
 		
 		// check if the position of your pieces are near the center/advantageous
-		public static double getCenterControl(DFSTreeNode node) {
+		public static double evaluateCenterControl(DFSTreeNode node) {
 			double score = 0.0;
 		
 			for (Piece piece : node.getGame().getBoard().getPieces(CustomHeuristics.getMaxPlayer(node))) {
@@ -413,7 +456,7 @@ public class CustomHeuristics
 				int y = pos.getYPosition();
 				switch (piece.getType()) {
 					case KNIGHT:
-						score -= KNIGHT_POS[y-1][x-1]; 
+						score -= KNIGHT_POS[y-1] [x-1]; 
 						break;
 					case QUEEN:
 						score -= QUEEN_POS [y-1] [x-1];
@@ -425,7 +468,8 @@ public class CustomHeuristics
 			return score;
 		}
 
-		public static double getMobility(DFSTreeNode node) {
+		// check who has better mobility -- important in mid/beginning game
+		public static double evaluateMobility(DFSTreeNode node) {
 			double score = 0.0;
 		
 			int maxPlayerMobility = 0;
@@ -444,58 +488,48 @@ public class CustomHeuristics
 			return score;
 		}
 		
-				
-		/* 
-
-		public static double getCenterControl2(DFSTreeNode node) {
+		
+		// Rooks on open files more stronger
+		public static double evaluateRookPosition(DFSTreeNode node) {
 			double score = 0.0;
-	
-			// Define central squares
-			Set<Coordinate> centralSquares = new HashSet<>();
-			centralSquares.add(new Coordinate(4, 5)); // d4
-			centralSquares.add(new Coordinate(4, 4)); // d5
-			centralSquares.add(new Coordinate(5, 5)); // e4
-			centralSquares.add(new Coordinate(5, 4)); // e5
-
-			// Evaluate control by the max player's pieces
-			for (Piece piece : node.getGame().getBoard().getPieces(CustomHeuristics.getMaxPlayer(node))) {
-				List<Move> controlledMoves = piece.getAllMoves(node.getGame());
-	
-				for (Move move : controlledMoves) {
-					MovementMove destination = (MovementMove) move; 
-					Coordinate targetSquare = destination.getTargetPosition(); // Get the target square of the move
-
-					if (centralSquares.contains(targetSquare)) {
-						score += 0.5;
-					} 
+		
+			for (Piece rook : node.getGame().getBoard().getPieces(CustomHeuristics.getMaxPlayer(node), PieceType.ROOK)) {
+				int x = rook.getCurrentPosition(node.getGame().getBoard()).getXPosition();
+		
+				boolean openFile = true;
+				boolean semiOpenFile = true;
+		
+				for (int y = 0; y <= 7; y++) {
+					Coordinate pos = new Coordinate(x, y);
+					Piece piece = node.getGame().getBoard().getPieceAtPosition(pos);
+					if (piece != null && piece.getType() == PieceType.PAWN) {
+						if (piece.getPlayer().equals(CustomHeuristics.getMaxPlayer(node))) {
+							openFile = false;
+							semiOpenFile = false;
+							break;
+						} else {
+							openFile = false;
+						}
+					}
+				}
+		
+				if (openFile) {
+					score += 0.5;
+				} else if (semiOpenFile) {
+					score += 0.25;
 				}
 			}
-	
-			// Subtract score for control by the opponent's pieces
-			for (Piece piece : node.getGame().getBoard().getPieces(CustomHeuristics.getMinPlayer(node))) {
-				List<Move> controlledMoves = piece.getAllMoves(node.getGame());
-	
-				for (Move move : controlledMoves) {
-					MovementMove destination = (MovementMove) move; 
-					Coordinate targetSquare = destination.getTargetPosition(); 
-
-					if (centralSquares.contains(targetSquare)) {
-						score -= 0.5;
-					} 
-				}
-			}
-	
+		
 			return score;
 		}
-
-		*/
+		
 
 		public static double evaluateBoardControl(DFSTreeNode node)
 		{
 			double score = 0.0;
-			score += getCenterControl(node);
-		//  score += getCenterControl2(node);
-			score += getMobility(node);
+			score += evaluateCenterControl(node);
+			score += evaluateMobility(node);
+			score += evaluateRookPosition(node);
 			return score;
 
 		}
@@ -542,6 +576,20 @@ public class CustomHeuristics
 
 		return numPiecesAlive + kingSurroundingPiecesValueTotal + numPiecesThreateningUs;
 	}
+
+	public static double getGamePhase(DFSTreeNode node) {
+		int totalMaterial = 0;
+		for (PieceType type : PieceType.values()) {
+			if (type != PieceType.KING) {
+				totalMaterial += node.getGame().getNumberOfAlivePieces(CustomHeuristics.getMaxPlayer(node), type) * Piece.getPointValue(type);
+				totalMaterial += node.getGame().getNumberOfAlivePieces(CustomHeuristics.getMinPlayer(node), type) * Piece.getPointValue(type);
+			}
+		}
+		// Maximum possible material excluding kings is 78
+		double phase = (double) totalMaterial / 78.0;
+		return phase; // Closer to 1.0 is opening, closer to 0.0 is endgame
+	}
+	
 
 	public static double getMaxPlayerHeuristicValue(DFSTreeNode node)
 	{
