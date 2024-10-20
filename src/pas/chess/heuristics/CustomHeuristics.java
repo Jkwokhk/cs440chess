@@ -2,6 +2,8 @@ package src.pas.chess.heuristics;
 
 
 // SYSTEM IMPORTS
+
+import edu.bu.chess.search.DFSTreeNodeType;
 import edu.bu.chess.search.DFSTreeNode;
 import edu.cwru.sepia.util.Direction;
 import edu.bu.chess.game.move.Move;
@@ -77,6 +79,35 @@ public class CustomHeuristics
 
 			return weighted_threat;
 		}
+
+		public static double captureHighValuePieces(DFSTreeNode node) {
+			double score = 0;
+
+			Map<PieceType, Integer> pieceValues = new HashMap<>();
+			pieceValues.put(PieceType.BISHOP, 3);
+			pieceValues.put(PieceType.KNIGHT, 3);
+			pieceValues.put(PieceType.PAWN, 1);
+			pieceValues.put(PieceType.QUEEN, 9);
+			pieceValues.put(PieceType.ROOK, 5);
+			pieceValues.put(PieceType.KING, 999);
+
+			for (Piece piece : node.getGame().getBoard().getPieces(CustomHeuristics.getMaxPlayer(node))){
+				List<Move> captureMoves = piece.getAllCaptureMoves(node.getGame());
+
+				for (Move move : captureMoves){
+					CaptureMove capturemove = (CaptureMove) move;
+					Integer targetID = capturemove.getTargetPieceID();
+
+					if (targetID != null) {
+
+						Piece target = node.getGame().getBoard().getPiece(CustomHeuristics.getMinPlayer(node), targetID);
+							score += pieceValues.get(target.getType()) - pieceValues.get(piece.getType());
+					}
+				}
+			}
+			return score;
+		}
+
 	}
 
 
@@ -135,6 +166,7 @@ public class CustomHeuristics
 			pieceValues.put(PieceType.ROOK, 5);
 			// need kings weight because enemy is targeting king
 			pieceValues.put(PieceType.KING, 99999);
+
 			for(Piece piece : node.getGame().getBoard().getPieces(CustomHeuristics.getMinPlayer(node)))
 			{
 				List<Move> captureMoves = piece.getAllCaptureMoves(node.getGame());
@@ -150,6 +182,8 @@ public class CustomHeuristics
 			}
 			return weighted_threat;
 		}
+
+		
 
 
 		public static int getClampedPieceValueTotalSurroundingMaxPlayersKing(DFSTreeNode node)
@@ -179,6 +213,40 @@ public class CustomHeuristics
 			// kingSurroundingPiecesValueTotal cannot be < 0 b/c the utility of losing a game is 0, so all of our utility values should be at least 0
 			maxPlayerKingSurroundingPiecesValueTotal = Math.max(maxPlayerKingSurroundingPiecesValueTotal, 0);
 			return maxPlayerKingSurroundingPiecesValueTotal;
+		}
+		
+		public static int kingShield(DFSTreeNode node) {
+			int score = 0;
+		
+			Piece kingPiece = node.getGame().getBoard().getPieces(CustomHeuristics.getMaxPlayer(node), PieceType.KING).iterator().next();
+			Coordinate kingPosition = node.getGame().getCurrentPosition(kingPiece);
+		
+			Integer x = kingPosition.getXPosition();
+			Integer y = kingPosition.getYPosition();
+		
+			// if king is castled
+			if ((x == 3 || x == 7) && (y == 0)) {
+				score += 10;
+			}
+		
+			int count = 0;
+			for (int row = -1; row <= 1; row++) {
+				int adjPos = x + row;
+				Coordinate pos = new Coordinate(adjPos, y - 1);
+				
+				Piece pieceAtPos = node.getGame().getBoard().getPieceAtPosition(pos);
+		
+				if (pieceAtPos != null && pieceAtPos.getType() == PieceType.PAWN && 
+					pieceAtPos.getPlayer().equals(CustomHeuristics.getMaxPlayer(node))) {
+					count++;
+				}
+			}
+		
+			if (count == 3) {
+				score *= 10;
+			}
+		
+			return score; 
 		}
 		
 		
@@ -221,7 +289,7 @@ public class CustomHeuristics
 				if(!isAdjacent && !isProtected)
 				{
 					score -= 0.5;
-					System.out.println("Isolated pawn!");
+					// System.out.println("Isolated pawn!");
 				}
 
 			}
@@ -247,7 +315,7 @@ public class CustomHeuristics
 					score -= (count - 1) * 0.5;
 				}
 			}
-			System.out.println("double pawns!");
+			// System.out.println("double pawns!");
 			return score;
 		}
 
@@ -290,7 +358,7 @@ public class CustomHeuristics
 
 				if (!left_support && !right_support)
 				{
-					score -= 0.5;
+					score -= 1;
 				}
 			}
 			return score;
@@ -365,6 +433,33 @@ public class CustomHeuristics
 			return true;
 			
 		}
+
+		public static double getPawnChains(Set<Piece> pawns, DFSTreeNode node) {
+			double score = 0.0;
+			Set<Coordinate> pawnCoordinates = new HashSet<>();
+			
+			// Gather pawn positions
+			for (Piece pawn : pawns) {
+				Coordinate pos = pawn.getCurrentPosition(node.getGame().getBoard());
+				pawnCoordinates.add(pos);
+			}
+		
+			for (Coordinate position : pawnCoordinates) {
+				int pawnX = position.getXPosition();
+				int pawnY = position.getYPosition();
+		
+				// Check if there are protecting pawns in the chain
+				Coordinate leftChain = new Coordinate(pawnX - 1, pawnY - 1);
+				Coordinate rightChain = new Coordinate(pawnX + 1, pawnY - 1);
+		
+				if (pawnCoordinates.contains(leftChain) || pawnCoordinates.contains(rightChain)) {
+					score += 0.5;  
+				}
+			}
+		
+			return score;
+		}
+		
 		
 		
 
@@ -378,8 +473,9 @@ public class CustomHeuristics
 			score += getIsolatedPawns(pawns, node);
 			score += getDoublePawns(pawns, node);
 			score += getBackwardPawns(pawns, node);
-			score += getCenterPawns(pawns, node);
-			score += getPassedPawns(node) * 0.15 * phase + 0.3 * (1 - phase);  // engame
+			score += getCenterPawns(pawns, node) * phase;
+			score += getPassedPawns(node) * (phase < 0.2 ? 2.0 : 1.0);  // 2x   // engame
+			score += getPawnChains(pawns, node);
 
 			return score; 
 
@@ -425,6 +521,22 @@ public class CustomHeuristics
 						break;
 					case QUEEN:
 						score += QUEEN_POS[y-1][x-1];
+						break;
+					// Add cases for other piece types?
+				}
+			}
+		
+			// Subtract opponent's piece-square values
+			for (Piece piece : node.getGame().getBoard().getPieces(CustomHeuristics.getMinPlayer(node))) {
+				Coordinate pos = piece.getCurrentPosition(node.getGame().getBoard());
+				int x = pos.getXPosition();
+				int y = pos.getYPosition();
+				switch (piece.getType()) {
+					case KNIGHT:
+						score -= KNIGHT_POS[y-1][x-1]; 
+						break;
+					case QUEEN:
+						score -= QUEEN_POS [y-1][x-1];
 						break;
 					// Add cases for other piece types?
 				}
@@ -543,8 +655,9 @@ public class CustomHeuristics
 			double phase = getGamePhase(node);
 			double score = 0.0;
 
-			score += evaluateCenterControl(node) * 0.3 * phase + 0.15 * (1 - phase);
-			score += evaluateOverallMobility(node) * 0.3 * phase + 0.25 * (1 - phase);  // More weight in opening/midgame;
+			// score += evaluateBishopMobility(node);
+			score += evaluateCenterControl(node) * (phase < 0.2 ? 1.0 : 1.3);
+			score += evaluateOverallMobility(node) * (phase < 0.2 ? 1.0 : 1.3);  // More weight in opening/midgame;
 			score += evaluateRookPosition(node);
 			score += evaluateKnightOutposts(node) * phase;
 			return score;
@@ -575,7 +688,9 @@ public class CustomHeuristics
 		// offense can typically include the number of pieces that our pieces are currently threatening
 		int numPiecesWeAreThreatening = OffensiveHeuristics.getWeightedThreat(node);
 
-		return damageDealtInThisNode + numPiecesWeAreThreatening;
+		double captureHighVals = OffensiveHeuristics.captureHighValuePieces(node);
+
+		return damageDealtInThisNode /* + numPiecesWeAreThreatening */ + captureHighVals;
 	}
 
 	// taken from default
@@ -607,17 +722,20 @@ public class CustomHeuristics
 		return phase; // Closer to 1.0 is opening, closer to 0.0 is endgame
 	}
 
-	
 
 	public static double getMaxPlayerHeuristicValue(DFSTreeNode node)
 	{
+		double score = 0;
 		// please replace this!
 		double defensiveHeuristicValue = CustomHeuristics.getDefensiveMaxPlayerHeuristicValue(node);
 		double pawnHeuristicValue = PawnStructureHeuristics.evaluatePawnStructure(node);
 		double boardcontrolHeuristicValue = BoardControlHeuristics.evaluateBoardControl(node);
-		double offenseHeuristicValue = DefaultHeuristics.getOffensiveMaxPlayerHeuristicValue(node);
-		return ( 1.5 * defensiveHeuristicValue) + pawnHeuristicValue + boardcontrolHeuristicValue;
+		double offenseHeuristicValue = CustomHeuristics.getOffensiveMaxPlayerHeuristicValue(node);
+	
+		score = (1.5 * defensiveHeuristicValue) + pawnHeuristicValue + boardcontrolHeuristicValue + (10 * offenseHeuristicValue);
 		
+		return score;
+
 	}
 
 }
