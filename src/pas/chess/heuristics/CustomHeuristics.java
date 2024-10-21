@@ -123,6 +123,7 @@ public class CustomHeuristics
 			pieceValues.put(PieceType.PAWN, 1);
 			pieceValues.put(PieceType.QUEEN, 9);
 			pieceValues.put(PieceType.ROOK, 5);
+			
 			for (PieceType piecetype : PieceType.values())
 			{
 				Integer num_pieces = 0;
